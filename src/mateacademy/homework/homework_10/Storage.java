@@ -76,7 +76,7 @@ public class Storage<T, K> {
         Node<K, T> temp = values[basket];
         do {
             temp = temp.next;
-        } while (temp.entry.getKey() != key);
+        } while (temp.entry.getKey().uquals(key));
         return temp.entry.getValue();
     }
 
