@@ -8,9 +8,10 @@ public class Storage<T, K> {
     private static final int DEFAULTCAPACITY = 10;
     private int currentCapacity;
     private int size;
-    private int basket;
+    private int basketNumber;
     private double loadFactor;
-    Node<K, T> currentNode;
+    private Node<K, T> currentNode;
+    private Node<K, T> basketNode;
     public Node<K, T>[] values;
 
     public Storage() {
@@ -22,8 +23,10 @@ public class Storage<T, K> {
         return key.hashCode() % currentCapacity;
     }
 
-    private boolean isCollision(Node<K, T> node, T key) {
-        return (size() > 0 && node != null && node.entry.getKey() != key);
+    private boolean isCollision(Node<K, T> basketNode, T currentNodeKey) {
+        return (size() > 0
+                && basketNode != null
+                && basketNode.entry.getKey().equals(currentNodeKey));
     }
 
     private void collisionList(Node<K, T>[] node, int basket, Node<K, T> currentNode) {
@@ -43,18 +46,19 @@ public class Storage<T, K> {
             values = new Node[currentCapacity];
         }
         Entry object = new Entry(key, value);
-        basket = getPutIndex(key);
+        basketNumber = getPutIndex(key);
         loadFactor = currentCapacity * 0.75;
+        basketNode = values[basketNumber];
         if (size < loadFactor) {
             currentNode = new Node(null, object, null);
-            if (isCollision(values[basket], key)) {
-                collisionList(values, basket, currentNode);
+            if (isCollision(basketNode, key)) {
+                collisionList(values, basketNumber, currentNode);
             } else {
-                if (values[basket] != null
-                        && (values[basket].entry.getKey().equals(currentNode.entry.getKey()))) {
-                    values[basket].entry.setValue(currentNode.entry.getValue());
+                if (basketNode != null
+                        && (basketNode.entry.getKey().equals(currentNode.entry.getKey()))) {
+                    basketNode.entry.setValue(currentNode.entry.getValue());
                 } else {
-                    values[basket] = currentNode;
+                    values[basketNumber] = currentNode;
                     size++;
                 }
             }
@@ -68,12 +72,13 @@ public class Storage<T, K> {
         if (values[getPutIndex(key)] == null) {
             throw new NoSuchElementException();
         }
-        basket = getPutIndex(key);
-        if (values[basket].entry.getKey().equals(key)
+        basketNumber = getPutIndex(key);
+        basketNode = values[basketNumber];
+        if (basketNode.entry.getKey().equals(key)
         ) {
-            return values[basket].entry.getValue();
+            return basketNode.entry.getValue();
         }
-        Node<K, T> temp = values[basket];
+        Node<K, T> temp = basketNode;
         do {
             temp = temp.next;
         } while (temp.entry.getKey().equals(key));
@@ -85,20 +90,22 @@ public class Storage<T, K> {
     }
 
     private void growArray(Entry<T, K> entry) {
-        Node<K, T>[] growArray = new Node[currentCapacity * 3 / 2];
+        Node<K, T>[] growArray = new Node[currentCapacity * 2];
         currentCapacity = growArray.length;
-        basket = getPutIndex(entry.getKey());
+        basketNumber = getPutIndex(entry.getKey());
         currentNode = new Node(null, entry, null);
-        growArray[basket] = currentNode;
+        growArray[basketNumber] = currentNode;
+        basketNode = growArray[basketNumber];
         size = 1;
         for (int i = 0; i < values.length; i++) {
             if (values[i] != null) {
-                basket = getPutIndex(values[i].entry.getKey());
+                T valuesKey = values[i].entry.getKey();
+                basketNumber = getPutIndex(valuesKey);
                 currentNode = new Node(null, values[i].entry, null);
-                if (isCollision(growArray[basket], values[i].entry.getKey())) {
-                    collisionList(growArray, basket, currentNode);
+                if (isCollision(basketNode, valuesKey)) {
+                    collisionList(growArray, basketNumber, currentNode);
                 }
-                growArray[basket] = currentNode;
+                growArray[basketNumber] = currentNode;
                 size++;
             }
         }
